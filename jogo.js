@@ -8,30 +8,48 @@ const contexto = canvas.getContext('2d');
 
 
 //atribuições dos objetos e entidades do jogo
-const flappyBird = {
-    sX: 0,
-    sY: 0,
-    w: 33,
-    h: 24,
-    x: 10,
-    y: 50,
-    gravidade: 0.25,
-    velocidade: 0,
+const globais = {};
 
-    atualiza() {
-        flappyBird.velocidade += flappyBird.gravidade;
-        flappyBird.y += flappyBird.velocidade;
-    },
-
-    desenha() {
-        contexto.drawImage(
-            sprites,
-            flappyBird.sX, flappyBird.sY,
-            flappyBird.w, flappyBird.h,
-            flappyBird.x, flappyBird.y,
-            flappyBird.w, flappyBird.h
-        );
+function criaFlappyBird() {
+    const flappyBird = {
+        sX: 0,
+        sY: 0,
+        w: 33,
+        h: 24,
+        x: 10,
+        y: 50,
+        gravidade: 0.25,
+        velocidade: 0,
+        pulo: 4.6,
+    
+        pula() {
+            flappyBird.velocidade = -flappyBird.pulo;
+        },
+    
+        atualiza() {
+            if (fazColisao(flappyBird, chao)) {
+                som_HIT.play();
+                setTimeout(() => {
+                    mudaParaTela(telas.inicio);
+                }, 500)
+                return;
+            }
+            
+            flappyBird.velocidade += flappyBird.gravidade;
+            flappyBird.y += flappyBird.velocidade;
+        },
+    
+        desenha() {
+            contexto.drawImage(
+                sprites,
+                flappyBird.sX, flappyBird.sY,
+                flappyBird.w, flappyBird.h,
+                flappyBird.x, flappyBird.y,
+                flappyBird.w, flappyBird.h
+            );
+        }
     }
+    return flappyBird;
 }
 const chao = {
     sX: 0,
@@ -105,40 +123,75 @@ const mensagemGetReady = {
     }
 }
 
+//efeitos sonoros
+const som_HIT = new Audio();
+som_HIT.src = './sprites-and-effects/sounds/hit.wav';
+
+const som_PULO = new Audio();
+som_PULO.src = './sprites-and-effects/sounds/pulo.wav';
+
+const som_PONTO = new Audio();
+som_PONTO.src = './sprites-and-effects/sounds/ponto.wav';
+
+
 //telas
 const telas = {
     inicio: {
+        inicializa() {
+            globais.flappyBird = criaFlappyBird();
+        },
         desenha() {
             planoDeFundo.desenha();
             chao.desenha();
-            flappyBird.desenha();
+            globais.flappyBird.desenha();
             mensagemGetReady.desenha();
         },
-        atualiza() {}
+        atualiza() {},
+        click() {
+            mudaParaTela(telas.jogo);
+        }
     },
     jogo: {
         desenha() {
             planoDeFundo.desenha();
             chao.desenha();
-            flappyBird.desenha();
+            globais.flappyBird.desenha();
         },
         atualiza() {
-            flappyBird.atualiza();
+            globais.flappyBird.atualiza();
+        },
+        click() {
+            globais.flappyBird.pula();
         }
     }
 }
 function mudaParaTela(novaTela) {
     telaAtiva = novaTela;
+
+    if (telaAtiva.inicializa) {
+        telaAtiva.inicializa();
+    }
 }
 let telaAtiva = {};
 
-
-//condição troca de telas
+//condição troca de telas do começodo jogo
 window.addEventListener('click', function () {
-    if (telaAtiva === telas.inicio) {
-        mudaParaTela(telas.jogo);
+    if (telaAtiva.click) {
+        telaAtiva.click();
     }
 });
+
+//dinamicas do jogo
+function fazColisao(flappyBird, chao) {
+    const flappyBirdY = flappyBird.y + flappyBird.h;
+    const chaoY = chao.y;
+    
+    if (flappyBirdY >= chaoY) {
+        return true;
+    }
+    return false;
+}
+
 
 //loop do jogo
 function loop() {
