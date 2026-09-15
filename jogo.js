@@ -6,11 +6,11 @@ sprites.src = './sprites-and-effects/sprites.png';
 const canvas = document.querySelector('canvas');
 const contexto = canvas.getContext('2d');
 
-
-//atribuições dos objetos e entidades do jogo
 const globais = {};
 let frames = 0;
 
+
+//atribuições das entidades do jogo e objetos do jogo
 function criaFlappyBird() {
     const flappyBird = {
         w: 33,
@@ -35,13 +35,15 @@ function criaFlappyBird() {
     
         pula() {
             flappyBird.velocidade = -flappyBird.pulo;
+
+            som_PULO.play();
         },
     
         atualiza() {
             if (fazColisao(flappyBird, globais.chao)) {
-                som_HIT.play();
+                som_CAIU.play();
                 setTimeout(() => {
-                    mudaParaTela(telas.inicio);
+                    mudaParaTela(telas.gameOver);
                 }, 200)
                 return;
             }
@@ -167,8 +169,8 @@ function criaCanos() {
                 par.x -= 2;
 
                 if (canos.colisaoCanos(par)) {
-                    som_HIT.play();
-                    mudaParaTela(telas.inicio);
+                    som_CAIU.play();
+                    mudaParaTela(telas.gameOver);
                 }
 
                 if (par.x +canos.w <= 0) {
@@ -179,7 +181,24 @@ function criaCanos() {
     }
     return canos;
 }
-
+function criaPlacar() {
+    const placar = {
+        pontuacao: 0,
+        desenha() {
+            contexto.font = '35px "VT323"';
+            contexto.fillStyle = 'white';
+            contexto.textAlign = 'right';
+            contexto.fillText(`${placar.pontuacao}`, (canvas.width - 15), 35);
+            placar.pontuacao
+        },
+        atualiza() {
+            if (frames % 2000) {
+                placar.pontuacao += 1;
+            }
+        }
+    }
+    return placar
+}
 const planoDeFundo = {
     sX: 390,
     sY: 0,
@@ -226,19 +245,38 @@ const mensagemGetReady = {
         );
     }
 }
+const mensagemGameOver = {
+    sX: 134,
+    sY: 153,
+    w: 226,
+    h: 200,
+    x: (canvas.width / 2) - 226/2,
+    y: 50,
+
+    desenha() {
+        contexto.drawImage(
+            sprites,
+            mensagemGameOver.sX, mensagemGameOver.sY,
+            mensagemGameOver.w, mensagemGameOver.h,
+            mensagemGameOver.x, mensagemGameOver.y,
+            mensagemGameOver.w, mensagemGameOver.h
+        )
+    }
+}
 
 //efeitos sonoros
-const som_HIT = new Audio();
-som_HIT.src = './sprites-and-effects/sounds/hit.wav';
-
 const som_PULO = new Audio();
 som_PULO.src = './sprites-and-effects/sounds/pulo.wav';
 
 const som_PONTO = new Audio();
 som_PONTO.src = './sprites-and-effects/sounds/ponto.wav';
 
+const som_CAIU = new Audio();
+som_CAIU.src = './sprites-and-effects/sounds/caiu.wav'
+
 
 //telas
+let telaAtiva = {};
 const telas = {
     inicio: {
         inicializa() {
@@ -261,20 +299,33 @@ const telas = {
     },
     jogo: {
         inicializa() {
+            globais.placar = criaPlacar();
         },
         desenha() {
             planoDeFundo.desenha();
             globais.canos.desenha();
             globais.chao.desenha();
+            globais.placar.desenha();
             globais.flappyBird.desenha();
         },
         atualiza() {
             globais.canos.atualiza();
             globais.chao.atualiza();
             globais.flappyBird.atualiza();
+
+            globais.placar.atualiza();
         },
         click() {
             globais.flappyBird.pula();
+        }
+    },
+    gameOver: {
+        desenha() {
+            mensagemGameOver.desenha();
+        },
+        atualiza () {},
+        click() {
+            mudaParaTela(telas.inicio)
         }
     }
 }
@@ -285,9 +336,8 @@ function mudaParaTela(novaTela) {
         telaAtiva.inicializa();
     }
 }
-let telaAtiva = {};
 
-//condição troca de telas do começodo jogo
+//condição troca de telas do começo do jogo
 window.addEventListener('click', function () {
     if (telaAtiva.click) {
         telaAtiva.click();
@@ -305,7 +355,6 @@ function fazColisao(flappyBird, chao) {
     return false;
 }
 
-
 //loop do jogo
 function loop() {
     telaAtiva.desenha();
@@ -315,6 +364,6 @@ function loop() {
     requestAnimationFrame(loop);
 };
 
-
+//primeiro inicio
 mudaParaTela(telas.inicio);
 loop();
